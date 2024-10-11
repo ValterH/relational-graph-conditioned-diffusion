@@ -1,0 +1,22 @@
+# local package
+-e .
+git+https://github.com/martinjurkovic/syntherela.git
+# external requirements
+numpy
+pandas
+scikit-learn
+scipy
+icecream
+xlrd
+tomli-w
+zero
+category_encoders
+kaggle
+transformers
+datasets
+peft
+openpyxl
+torch_geometric==2.4.0
+xgboost
+seaborn
+
