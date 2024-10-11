@@ -39,11 +39,11 @@ python src/scripts/sample.py --dataset-name DATASET_NAME
 ## Citing
 ```
 @inproceedings{
-hudovernik2024relational,
-title={Relational Data Generation with Graph Neural Networks and Latent Diffusion Models},
-author={Valter Hudovernik},
-booktitle={NeurIPS 2024 Third Table Representation Learning Workshop},
-year={2024},
-url={https://openreview.net/forum?id=MNLR2NYN2Z}
+  hudovernik2024relational,
+  title={Relational Data Generation with Graph Neural Networks and Latent Diffusion Models},
+  author={Valter Hudovernik},
+  booktitle={NeurIPS 2024 Third Table Representation Learning Workshop},
+  year={2024},
+  url={https://openreview.net/forum?id=MNLR2NYN2Z}
 }
 ```
