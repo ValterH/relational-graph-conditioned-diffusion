@@ -271,7 +271,7 @@ def main():
     tables, metadata = remove_sdv_columns(tables, metadata)
 
     masked_tables = metadata.get_tables()
-    table_order = get_table_order(dataset_name)
+    table_order = get_table_order(metadata)
     num_layers = len(table_order)
 
     # load latents for supervision

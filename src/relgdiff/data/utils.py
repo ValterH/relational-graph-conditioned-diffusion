@@ -138,29 +138,19 @@ def add_aggregations(data, metadata, update_metadata=True):
     return aggregated_data, metadata
 
 
-def get_table_order(dataset_name):
-    if dataset_name == "rossmann_subsampled":
-        return ["store", "historical"]
-    elif dataset_name == "Biodegradability_v1":
-        return ["molecule", "atom", "bond", "gmember", "group"]
-    elif dataset_name == "walmart_subsampled":
-        return ["stores", "depts", "features"]
-    elif dataset_name == "CORA_v1":
-        return ["paper", "content", "cites"]
-    elif dataset_name == "imdb_MovieLens_v1":
-        return [
-            "movies",
-            "u2base",
-            "users",
-            "movies2actors",
-            "actors",
-            "movies2directors",
-            "directors",
-        ]
-    elif dataset_name == "airbnb-simplified_subsampled":
-        return ["users", "sessions"]
-    else:
-        raise ValueError(f"Unknown dataset {dataset_name}")
+def get_table_order(metadata):
+    parents = sorted(metadata.get_root_tables())
+    all_tables = metadata.get_tables()
+    table_order = parents
+
+    while len(table_order) < len(all_tables):
+        for relationship in metadata.relationships:
+            if (
+                relationship["parent_table_name"] in table_order
+                and relationship["child_table_name"] not in table_order
+            ):
+                table_order.append(relationship["child_table_name"])
+    return table_order
 
 
 def get_positional_encoding(dataset_name):

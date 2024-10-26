@@ -91,7 +91,7 @@ def train_pipline(
         embedding_dims[table] = (T - 1) * C
 
     # train generative model for each table (latent conditional diffusion)
-    for table in get_table_order(dataset_name):
+    for table in get_table_order(metadata):
         # skip foreign key only tables
         if metadata.get_column_names(table) == metadata.get_column_names(
             table, sdtype="id"
