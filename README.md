@@ -23,6 +23,8 @@ pip install -r requirements.txt
 
 Example
 ------------
+Download the datasets from the SyntheRela benchmark [here](https://drive.google.com/drive/u/2/folders/1L9KarR20JqzU0p8b3G_KU--h2b8sz6ky).
+
 Preprocess data
 ```bash
 python src/scripts/preprocess_data.py --dataset-name DATASET_NAME
