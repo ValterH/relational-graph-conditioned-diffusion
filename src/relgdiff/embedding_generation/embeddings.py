@@ -260,6 +260,7 @@ def main():
     epochs = 100
     mlp_layers = 3
     hidden_channels = 128
+    run = 1
     gnn_model = "GIN"  # "GAT"  # "GraphSAGE"  # "GATv2"  # "GAT"  #
     dataset_name = "walmart_subsampled"  # "CORA_v1"  #   "rossmann_subsampled"  #
     pos_enc = True
@@ -289,7 +290,7 @@ def main():
 
         table_save_path = f"{table}{'_factor' if factor_missing else ''}"
         latents[table] = np.load(
-            f"ckpt/{dataset_name}/{table_save_path}/vae/latents.npy"
+            f"ckpt/{dataset_name}/{table_save_path}/vae/{run}/latents.npy"
         )
         _, T, C = latents[table].shape
         embedding_dims[table] = (T - 1) * C

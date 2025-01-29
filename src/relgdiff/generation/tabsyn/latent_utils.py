@@ -1,4 +1,3 @@
-import os
 import json
 import numpy as np
 import pandas as pd
@@ -15,7 +14,7 @@ def get_input_train(dataname, is_cond, run):
         info = json.load(f)
 
     ckpt_dir = f"ckpt/{dataname}/{run}"
-    embedding_save_path = f"ckpt/{dataname}/vae/latents.npy"
+    embedding_save_path = f"ckpt/{dataname}/vae/{run}/latents.npy"
     if is_cond:
         cond_embedding_save_path = f"ckpt/{dataname}/cond_train_z.npy"
         train_z_cond = torch.tensor(np.load(cond_embedding_save_path)).float()
@@ -43,7 +42,7 @@ def get_input_generate(dataname, run, normalization="quantile"):
         dataset_dir, inverse=True, normalization=normalization
     )
 
-    embedding_save_path = f"ckpt/{dataname}/vae/latents.npy"
+    embedding_save_path = f"ckpt/{dataname}/vae/{run}/latents.npy"
     train_z = torch.tensor(np.load(embedding_save_path)).float()
 
     train_z = train_z[:, 1:, :]
@@ -54,7 +53,7 @@ def get_input_generate(dataname, run, normalization="quantile"):
     train_z = train_z.view(B, in_dim)
     pre_decoder = Decoder_model(2, d_numerical, categories, 4, n_head=1, factor=32)
 
-    decoder_save_path = f"ckpt/{dataname}/vae/decoder.pt"
+    decoder_save_path = f"ckpt/{dataname}/vae/{run}/decoder.pt"
     pre_decoder.load_state_dict(torch.load(decoder_save_path))
 
     info["pre_decoder"] = pre_decoder

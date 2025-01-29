@@ -66,7 +66,9 @@ def train_pipline(
         ):
             continue
         table_save_path = f'{dataset_name}/{table}{"_factor" if factor_missing else ""}'
-        if retrain_vae or not os.path.exists(f"ckpt/{table_save_path}/vae/decoder.pt"):
+        if retrain_vae or not os.path.exists(
+            f"ckpt/{table_save_path}/vae/{run}/decoder.pt"
+        ):
             print(f"Training VAE for table {table}")
             X_num, X_cat, idx, categories, d_numerical = preprocess(
                 dataset_path=f"{DATA_PATH}/processed/{table_save_path}",
@@ -85,7 +87,7 @@ def train_pipline(
             )
         else:
             print(f"Reusing VAE for table {table}")
-        table_latents = np.load(f"ckpt/{table_save_path}/vae/latents.npy")
+        table_latents = np.load(f"ckpt/{table_save_path}/vae/{run}/latents.npy")
         latents[table] = table_latents
         _, T, C = table_latents.shape
         embedding_dims[table] = (T - 1) * C
