@@ -1,5 +1,4 @@
 import os
-import json
 import time
 import warnings
 
@@ -139,7 +138,7 @@ def train_vae(
     start_time = time.time()
     for epoch in range(epochs):
         pbar = tqdm(train_loader, total=len(train_loader))
-        pbar.set_description(f"Epoch {epoch+1}/{epochs}")
+        pbar.set_description(f"Epoch {epoch + 1}/{epochs}")
 
         curr_loss_multi = 0.0
         curr_loss_gauss = 0.0
