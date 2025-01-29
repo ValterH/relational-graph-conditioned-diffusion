@@ -39,7 +39,7 @@ def sample_structures(data_path, metadata, num_structures=None, pos_enc={}):
     if num_structures is None:
         num_structures = len(subgraphs)
 
-    if num_structures > len(subgraphs):
+    if num_structures >= len(subgraphs):
         samples = random.choices(subgraphs, k=num_structures)
     else:
         samples = random.sample(subgraphs, k=num_structures)

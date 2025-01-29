@@ -21,8 +21,8 @@ DATA_PATH = "data"
 
 def sample(
     dataset_name,
-    num_samples,
     run,
+    num_structures=None,
     factor_missing=True,
     model_type="mlp",
     seed=None,
@@ -31,6 +31,7 @@ def sample(
     mlp_layers=3,
     positional_enc=True,
     normalization="quantile",
+    sample_idx=None,
 ):
     if seed is not None:
         torch.manual_seed(seed)
@@ -55,7 +56,7 @@ def sample(
     hetero_data = sample_structures(
         data_path=f"{DATA_PATH}/original/{dataset_name}",
         metadata=metadata,
-        num_structures=num_samples,
+        num_structures=num_structures,
         pos_enc=pos_enc,
     )
 
@@ -68,7 +69,7 @@ def sample(
         ):
             continue
         table_save_path = f'{dataset_name}/{table}{"_factor" if factor_missing else ""}'
-        table_latents = np.load(f"ckpt/{table_save_path}/vae/latents.npy")
+        table_latents = np.load(f"ckpt/{table_save_path}/vae/{run}/latents.npy")
         _, T, C = table_latents.shape
         embedding_dims[table] = (T - 1) * C
 
@@ -181,7 +182,10 @@ def sample(
         if len(tables) < len(metadata.get_tables()):
             hetero_data = update_graph_features(hetero_data, df, table, metadata)
 
-    save_tables(tables, f"{DATA_PATH}/synthetic/{dataset_name}/ours/{run}/1/sample1")
+    save_path = f"{DATA_PATH}/synthetic/{dataset_name}/RGCLD/{run}"
+    if sample_idx is not None:
+        save_path = f"{save_path}/sample{sample_idx}"
+    save_tables(tables, save_path)
 
 
 ############################################################################################
@@ -190,7 +194,8 @@ def sample(
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-name", type=str, default="rossmann_subsampled")
-    parser.add_argument("--num-samples", default=None, type=int)
+    parser.add_argument("--num-samples", default=1, type=int)
+    parser.add_argument("--num-structures", default=None, type=int)
     parser.add_argument("--gnn-hidden", type=int, default=128)
     parser.add_argument("--denoising-steps", type=int, default=100)
     parser.add_argument("--seed", type=int, default=None)
@@ -219,6 +224,7 @@ def main():
     args = parse_args()
     dataset_name = args.dataset_name
     num_samples = args.num_samples
+    num_structures = args.num_structures
     denoising_steps = args.denoising_steps
     factor_missing = args.factor_missing
     positional_enc = args.positional_enc
@@ -231,18 +237,20 @@ def main():
     else:
         run = f'{model_type}{"_factor" if factor_missing else ""}{"_pe" if positional_enc else ""}'
 
-    sample(
-        dataset_name=dataset_name,
-        num_samples=num_samples,
-        run=run,
-        model_type=model_type,
-        normalization=normalization,
-        factor_missing=factor_missing,
-        positional_enc=positional_enc,
-        denoising_steps=denoising_steps,
-        gnn_hidden=gnn_hidden,
-        seed=seed,
-    )
+    for i in range(1, num_samples + 1):
+        sample(
+            dataset_name=dataset_name,
+            run=run,
+            num_structures=num_structures,
+            model_type=model_type,
+            normalization=normalization,
+            factor_missing=factor_missing,
+            positional_enc=positional_enc,
+            denoising_steps=denoising_steps,
+            gnn_hidden=gnn_hidden,
+            seed=seed,
+            sample_idx=i,
+        )
 
 
 if __name__ == "__main__":
