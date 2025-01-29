@@ -12,7 +12,7 @@ from relgdiff.generation.tabsyn.model import Model
 from relgdiff.generation.tabsyn.latent_utils import (
     get_input_generate,
     recover_data,
-    split_num_cat_target,
+    split_num_cat,
 )
 from relgdiff.generation.tabsyn.diffusion_utils import sample
 
@@ -60,7 +60,7 @@ def main(args):
     """
     start_time = time.time()
 
-    if args.no_samples == None:
+    if args.no_samples is None:
         num_samples = train_z.shape[0]
     else:
         num_samples = args.no_samples
@@ -68,12 +68,17 @@ def main(args):
     sample_dim = in_dim
 
     x_next = sample(
-        model.denoise_fn_D, num_samples, sample_dim, device=device, z_cond=train_z_cond
+        model.denoise_fn_D,
+        num_samples,
+        sample_dim,
+        device=device,
+        z_cond=train_z_cond,
+        num_steps=steps,
     )
     x_next = x_next * 2 + mean.to(device)
 
     syn_data = x_next.float().cpu().numpy()
-    syn_num, syn_cat, syn_target = split_num_cat_target(
+    syn_num, syn_cat, syn_target = split_num_cat(
         syn_data, info, num_inverse, cat_inverse
     )
 
@@ -117,7 +122,7 @@ if __name__ == "__main__":
     parser.add_argument("--gpu", type=int, default=0, help="GPU index.")
     parser.add_argument("--epoch", type=int, default=None, help="Epoch.")
     parser.add_argument(
-        "--steps", type=int, default=None, help="Number of function evaluations."
+        "--steps", type=int, default=50, help="Number of function evaluations."
     )
 
     args = parser.parse_args()
