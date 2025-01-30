@@ -80,7 +80,7 @@ def train_pipline(
                 idx,
                 categories,
                 d_numerical,
-                ckpt_dir=f"ckpt/{table_save_path}/vae",
+                ckpt_dir=f"ckpt/{table_save_path}/vae/{run}",
                 epochs=epochs_vae,
                 device=device,
                 seed=seed,
