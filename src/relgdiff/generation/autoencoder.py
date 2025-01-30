@@ -250,10 +250,16 @@ def train_vae(
         np.save(f"{ckpt_dir}/train_z.npy", train_z)
         np.save(f"{ckpt_dir}/test_z.npy", test_z)
 
-        # stack train_z and test_z
-        z = np.vstack([train_z, test_z])
-        # reorder the z based on the idx (revert the shuffle operation)
-        z = z[idx.argsort()]
+        if train_z.shape == test_z.shape:
+            # When unable to split train and test data during
+            # preprocessing the train and test data are the same.
+            z = train_z
+            assert idx.size == 0
+        else:
+            # stack train_z and test_z
+            z = np.vstack([train_z, test_z])
+            # reorder the z based on the idx (revert the shuffle operation)
+            z = z[idx.argsort()]
         np.save(f"{ckpt_dir}/latents.npy", z)
 
         print("Successfully save pretrained embeddings in disk!")

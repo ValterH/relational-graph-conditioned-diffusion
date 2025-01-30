@@ -1,12 +1,13 @@
 import os
 import json
 import argparse
+import warnings
 
 import numpy as np
 from syntherela.metadata import Metadata
 from syntherela.data import load_tables, remove_sdv_columns
 
-from relgdiff.data.utils import encode_datetime, add_aggregations
+from relgdiff.data.utils import encode_datetime
 
 TYPE_TRANSFORM = {"float", np.float32, "str", str, "int", int}
 
@@ -44,12 +45,14 @@ def get_column_name_mapping(data_df, num_col_idx, cat_col_idx, column_names=None
     return idx_mapping, inverse_idx_mapping, idx_name_mapping
 
 
-def train_val_test_split(data_df, cat_columns, num_train=0, num_test=0):
+def train_val_test_split(
+    data_df, cat_columns, num_train=0, num_test=0, max_retries=100
+):
     total_num = data_df.shape[0]
     idx = np.arange(total_num)
 
     seed = 1234
-
+    retries = 0
     while True:
         np.random.seed(seed)
         np.random.shuffle(idx)
@@ -70,6 +73,12 @@ def train_val_test_split(data_df, cat_columns, num_train=0, num_test=0):
             break
         else:
             seed += 1
+            retries += 1
+            if retries > max_retries:
+                warnings.warn(
+                    f"Unable to split the train and test data for table:\n {data_df.head()}"
+                )
+                return data_df, data_df, None, np.zeros(0)
 
     return train_df, test_df, seed, idx
 
@@ -79,7 +88,6 @@ def process_data(
     name,
     metadata,
     factor_missing=True,
-    add_aggregations=True,
     data_path="data",
     dataset_name="",
 ):
@@ -117,7 +125,7 @@ def process_data(
 
     column_names = data.columns.tolist()
 
-    save_dir = f'{data_path}/processed/{dataset_name}/{name}{"_factor" if factor_missing else ""}{"_agg" if add_aggregations else ""}'
+    save_dir = f"{data_path}/processed/{dataset_name}/{name}{'_factor' if factor_missing else ''}"
 
     idx_mapping, inverse_idx_mapping, idx_name_mapping = get_column_name_mapping(
         data, num_col_idx, cat_col_idx, column_names
@@ -161,7 +169,7 @@ def process_data(
                     subtype = "float"
                 else:
                     raise ValueError(
-                        f'Unknown computer representation {col_meta["computer_representatin"]}'
+                        f"Unknown computer representation {col_meta['computer_representatin']}"
                     )
         col_info[col_idx]["subtype"] = subtype
         col_info[col_idx]["max"] = float(train_df[col_idx].max())
@@ -249,7 +257,6 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-name", default="rossmann_subsampled", type=str)
     parser.add_argument("--factor-missing", action="store_true")
-    parser.add_argument("--add-aggregations", action="store_true")
     return parser.parse_args()
 
 
@@ -258,7 +265,6 @@ if __name__ == "__main__":
 
     args = parse_args()
     dataset_name = args.dataset_name
-    aggregations = args.add_aggregations
     factor_missing = args.factor_missing
 
     metadata = Metadata().load_from_json(
@@ -266,8 +272,6 @@ if __name__ == "__main__":
     )
     tables = load_tables(f"{DATA_PATH}/original/{dataset_name}/", metadata)
     tables, metadata = remove_sdv_columns(tables, metadata)
-    if aggregations:
-        tables, metadata = add_aggregations(tables, metadata)
 
     has_nan = False
     for table_name, table in tables.items():
@@ -276,12 +280,25 @@ if __name__ == "__main__":
     factor_missing = factor_missing and has_nan
 
     for table_name, table in tables.items():
+        pk = metadata.get_primary_key(table_name)
+        # reorder the parent rows so that parents without children are
+        # not at the start or end as this messes up the edge index
+        for child_table_name in metadata.get_children(table_name):
+            for fk in metadata.get_foreign_keys(table_name, child_table_name):
+                rows_with_children = tables[table_name][pk].isin(
+                    tables[child_table_name][fk]
+                )
+                # rows with children are at the start
+                index = rows_with_children.sort_values(ascending=False).index.tolist()
+                # shift the index by one so that the first row goes to the end
+                index = index[1:] + [index[0]]
+                tables[table_name] = tables[table_name].reindex(index)
+
         process_data(
             table,
             name=table_name,
             metadata=metadata.get_table_meta(table_name, to_dict=False),
             factor_missing=factor_missing,
-            add_aggregations=aggregations,
             data_path=DATA_PATH,
             dataset_name=dataset_name,
         )
