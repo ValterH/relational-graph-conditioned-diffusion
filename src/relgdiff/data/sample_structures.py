@@ -29,12 +29,16 @@ def get_connected_components(data):
     return connected_components
 
 
-def sample_structures(data_path, metadata, num_structures=None, pos_enc={}):
+def sample_structures(
+    data_path, metadata, num_structures=None, pos_enc={}, fix_structure=False
+):
     tables = load_tables(data_path, metadata)
     tables, metadata = remove_sdv_columns(tables, metadata)
     data = tables_to_heterodata(
         tables, metadata, masked_tables=metadata.get_tables(), pos_enc=pos_enc
     )
+    if fix_structure:
+        return data
     subgraphs = get_connected_components(data)
     if num_structures is None:
         num_structures = len(subgraphs)

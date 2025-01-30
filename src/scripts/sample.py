@@ -32,6 +32,7 @@ def sample(
     positional_enc=True,
     normalization="quantile",
     sample_idx=None,
+    fix_structure=False,
 ):
     if seed is not None:
         torch.manual_seed(seed)
@@ -58,6 +59,7 @@ def sample(
         metadata=metadata,
         num_structures=num_structures,
         pos_enc=pos_enc,
+        fix_structure=fix_structure,
     )
 
     # Read latentent embeddings dimensionts to obtain GNN dimensions
@@ -68,7 +70,7 @@ def sample(
             table, sdtype="id"
         ):
             continue
-        table_save_path = f'{dataset_name}/{table}{"_factor" if factor_missing else ""}'
+        table_save_path = f"{dataset_name}/{table}{'_factor' if factor_missing else ''}"
         table_latents = np.load(f"ckpt/{table_save_path}/vae/{run}/latents.npy")
         _, T, C = table_latents.shape
         embedding_dims[table] = (T - 1) * C
@@ -97,9 +99,9 @@ def sample(
             print(df.head())
             tables[table] = df
             continue
-        table_save_path = f'{dataset_name}/{table}{"_factor" if factor_missing else ""}'
+        table_save_path = f"{dataset_name}/{table}{'_factor' if factor_missing else ''}"
         # compute GNN embeddings
-        gnn_save_dir = f'ckpt/{dataset_name}/hetero_gnn/{"factor" if factor_missing else ""}{"pe" if positional_enc else ""}'
+        gnn_save_dir = f"ckpt/{dataset_name}/hetero_gnn/{'factor' if factor_missing else ''}{'pe' if positional_enc else ''}"
         conditional_embeddings = compute_hetero_gnn_embeddings(
             hetero_data,
             embedding_table=table,
@@ -217,6 +219,7 @@ def parse_args():
         default="reconstruction",
         choices=["reconstruction", "node_classification"],
     )
+    parser.add_argument("--use-original-structure", action="store_true")
     return parser.parse_args()
 
 
@@ -232,10 +235,11 @@ def main():
     model_type = args.model_type
     gnn_hidden = args.gnn_hidden
     normalization = args.normalization
+    fix_structure = args.use_original_structure
     if args.run is not None:
         run = args.run
     else:
-        run = f'{model_type}{"_factor" if factor_missing else ""}{"_pe" if positional_enc else ""}'
+        run = f"{model_type}{'_factor' if factor_missing else ''}{'_pe' if positional_enc else ''}"
 
     for i in range(1, num_samples + 1):
         sample(
@@ -250,6 +254,7 @@ def main():
             gnn_hidden=gnn_hidden,
             seed=seed,
             sample_idx=i,
+            fix_structure=fix_structure,
         )
 
 
