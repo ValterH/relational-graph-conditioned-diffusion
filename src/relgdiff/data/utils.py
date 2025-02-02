@@ -2,7 +2,7 @@ from copy import deepcopy
 import pandas as pd
 
 
-def encode_datetime(df, column):
+def encode_datetime(df, column, date_format="%Y-%m-%d"):
     datetime_columns = []
     nulls = df[column].isnull()
     df[column] = pd.to_datetime(df[column], errors="coerce")
@@ -14,7 +14,7 @@ def encode_datetime(df, column):
     df.loc[nulls, f"{column}_Day"] = 0
     datetime_columns.extend([f"{column}_Year", f"{column}_Month", f"{column}_Day"])
     # check if hours, minutes, seconds are needed
-    if df[column].dt.hour.sum() > 0:
+    if df[column].dt.hour.sum() > 0 or "%H" in date_format:
         df[f"{column}_Hour"] = df[column].dt.hour
         df[f"{column}_Minute"] = df[column].dt.minute
         df[f"{column}_Second"] = df[column].dt.second

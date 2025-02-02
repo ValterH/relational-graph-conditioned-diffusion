@@ -42,7 +42,12 @@ def preprocess_data(
 
     temp_table = temp_table[categorical_columns + numerical_columns + datetime_columns]
     for column in datetime_columns:
-        temp_table, new_columns = encode_datetime(temp_table, column)
+        date_format = (
+            metadata.tables[table_name]
+            .columns[column]
+            .get("datetime_format", "%Y-%m-%d %H:%M:%S")
+        )
+        temp_table, new_columns = encode_datetime(temp_table, column, date_format)
         numerical_columns.extend(new_columns)
 
     # one-hot encode the categorical columns
@@ -82,9 +87,9 @@ def tables_to_heterodata(
     pos_enc={},
 ):
     if embedding_table is not None:
-        assert (
-            embedding_table in latents
-        ), f"Missing latent reconstruction targets for target table({embedding_table})"
+        assert embedding_table in latents, (
+            f"Missing latent reconstruction targets for target table({embedding_table})"
+        )
     data = HeteroData()
 
     # Transform the ids to 0, 1, 2, ...
