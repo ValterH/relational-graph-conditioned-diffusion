@@ -107,7 +107,7 @@ def train_diff(
     start_time = time.time()
     for epoch in range(epochs):
         pbar = tqdm(train_loader, total=len(train_loader))
-        pbar.set_description(f"Epoch {epoch+1}/{epochs}")
+        pbar.set_description(f"Epoch {epoch + 1}/{epochs}")
 
         batch_loss = 0.0
         len_input = 0
@@ -136,7 +136,7 @@ def train_diff(
         scheduler.step(curr_loss)
 
         if curr_loss < best_loss:
-            best_loss = loss.item()
+            best_loss = curr_loss
             patience = 0
             torch.save(model.state_dict(), f"{ckpt_path}/model.pt")
         else:
