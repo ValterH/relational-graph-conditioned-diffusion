@@ -4,7 +4,7 @@ import torch
 import numpy as np
 import pandas as pd
 from syntherela.metadata import Metadata
-from syntherela.data import save_tables, load_tables
+from syntherela.data import save_tables, load_tables, remove_sdv_columns
 
 from relgdiff.generation.diffusion import sample_diff
 
@@ -34,6 +34,7 @@ def sample(
         f"{DATA_PATH}/original/{dataset_name}/metadata.json"
     )
     tables_orig = load_tables(f"{DATA_PATH}/original/{dataset_name}/", metadata)
+    tables_orig, metadata = remove_sdv_columns(tables_orig, metadata)
     tables = dict()
 
     # for each table in dataset
@@ -42,7 +43,6 @@ def sample(
         if metadata.get_column_names(table) == metadata.get_column_names(
             table, sdtype="id"
         ):
-            # add primary key
             continue
         table_save_path = f"{dataset_name}/{table}{'_factor' if factor_missing else ''}"
 
