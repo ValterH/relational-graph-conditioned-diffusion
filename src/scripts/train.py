@@ -65,7 +65,7 @@ def train_pipline(
             table, sdtype="id"
         ):
             continue
-        table_save_path = f'{dataset_name}/{table}{"_factor" if factor_missing else ""}'
+        table_save_path = f"{dataset_name}/{table}{'_factor' if factor_missing else ''}"
         if retrain_vae or not os.path.exists(
             f"ckpt/{table_save_path}/vae/{run}/decoder.pt"
         ):
@@ -99,10 +99,10 @@ def train_pipline(
             table, sdtype="id"
         ):
             continue
-        table_save_path = f'{dataset_name}/{table}{"_factor" if factor_missing else ""}'
+        table_save_path = f"{dataset_name}/{table}{'_factor' if factor_missing else ''}"
 
         # train GNN
-        gnn_save_dir = f'ckpt/{dataset_name}/hetero_gnn/{"factor" if factor_missing else ""}{"pe" if positional_enc else ""}'
+        gnn_save_dir = f"ckpt/{dataset_name}/hetero_gnn/{'factor' if factor_missing else ''}{'pe' if positional_enc else ''}"
         _, hetero_data = train_hetero_gnn(
             tables,
             metadata,
@@ -198,7 +198,7 @@ def main():
     if args.run is not None:
         run = args.run
     else:
-        run = f'{model_type}{"_factor" if factor_missing else ""}{"_pe" if positional_enc else ""}'
+        run = f"{model_type}{'_factor' if factor_missing else ''}{'_pe' if positional_enc else ''}"
 
     train_pipline(
         dataset_name=dataset_name,

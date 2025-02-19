@@ -183,7 +183,6 @@ def sample(
         # update the features of hetero_data
         if len(tables) < len(metadata.get_tables()):
             hetero_data = update_graph_features(hetero_data, df, table, metadata)
-
     save_path = f"{DATA_PATH}/synthetic/{dataset_name}/RGCLD/{run}"
     if sample_idx is not None:
         save_path = f"{save_path}/sample{sample_idx}"
@@ -212,12 +211,6 @@ def parse_args():
         type=str,
         default="quantile",
         choices=["quantile", "standard", "cdf"],
-    )
-    parser.add_argument(
-        "--embedding-task",
-        type=str,
-        default="reconstruction",
-        choices=["reconstruction", "node_classification"],
     )
     parser.add_argument("--use-original-structure", action="store_true")
     return parser.parse_args()
