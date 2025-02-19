@@ -64,7 +64,7 @@ def preprocess_data(
         temp_table[num_columns] = temp_table[num_columns].fillna(
             temp_table[num_columns].mean()
         )
-    elif type(fillna) == float:
+    elif type(fillna) is float:
         temp_table[num_columns] = temp_table[num_columns].fillna(fillna)
     df_numerical = temp_table[num_columns].astype("float64")
     numerical_std = df_numerical.std()
@@ -203,6 +203,13 @@ def tables_to_heterodata(
             data[key].pe = order
 
     return data
+
+
+def subgraph_has_all_tables(subgraph: HeteroData, metadata: Metadata) -> bool:
+    for table in metadata.get_tables():
+        if subgraph[table].x.size()[0] == 0:
+            return False
+    return True
 
 
 if __name__ == "__main__":
