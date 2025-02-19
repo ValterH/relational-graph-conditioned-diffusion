@@ -16,9 +16,6 @@ from relgdiff.generation.utils_train import TabularDataset
 from relgdiff.generation.vae.model import Model_VAE, Encoder_model, Decoder_model
 
 
-warnings.filterwarnings("ignore")
-
-
 LR = 1e-3
 WD = 0
 D_TOKEN = 4
@@ -67,6 +64,7 @@ def train_vae(
     device="cuda:0",
     seed=None,
 ):
+    warnings.filterwarnings("ignore")
     if seed is not None:
         torch.manual_seed(seed)
         np.random.seed(seed)

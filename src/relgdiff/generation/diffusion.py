@@ -17,8 +17,6 @@ from relgdiff.generation.tabsyn.latent_utils import (
 )
 from relgdiff.generation.tabsyn.diffusion_utils import sample
 
-warnings.filterwarnings("ignore")
-
 
 def get_denoise_function(
     in_dim,
@@ -54,6 +52,7 @@ def train_diff(
     device="cuda:0",
     seed=None,
 ):
+    warnings.filterwarnings("ignore")
     if seed is not None:
         torch.manual_seed(seed)
         np.random.seed(seed)
