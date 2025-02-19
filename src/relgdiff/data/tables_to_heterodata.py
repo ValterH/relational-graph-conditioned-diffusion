@@ -42,7 +42,12 @@ def preprocess_data(
 
     temp_table = temp_table[categorical_columns + numerical_columns + datetime_columns]
     for column in datetime_columns:
-        temp_table, new_columns = encode_datetime(temp_table, column)
+        date_format = (
+            metadata.tables[table_name]
+            .columns[column]
+            .get("datetime_format", "%Y-%m-%d %H:%M:%S")
+        )
+        temp_table, new_columns = encode_datetime(temp_table, column, date_format)
         numerical_columns.extend(new_columns)
 
     # one-hot encode the categorical columns
@@ -59,7 +64,7 @@ def preprocess_data(
         temp_table[num_columns] = temp_table[num_columns].fillna(
             temp_table[num_columns].mean()
         )
-    elif type(fillna) == float:
+    elif type(fillna) is float:
         temp_table[num_columns] = temp_table[num_columns].fillna(fillna)
     df_numerical = temp_table[num_columns].astype("float64")
     numerical_std = df_numerical.std()
@@ -82,9 +87,9 @@ def tables_to_heterodata(
     pos_enc={},
 ):
     if embedding_table is not None:
-        assert (
-            embedding_table in latents
-        ), f"Missing latent reconstruction targets for target table({embedding_table})"
+        assert embedding_table in latents, (
+            f"Missing latent reconstruction targets for target table({embedding_table})"
+        )
     data = HeteroData()
 
     # Transform the ids to 0, 1, 2, ...
@@ -198,6 +203,13 @@ def tables_to_heterodata(
             data[key].pe = order
 
     return data
+
+
+def subgraph_has_all_tables(subgraph: HeteroData, metadata: Metadata) -> bool:
+    for table in metadata.get_tables():
+        if subgraph[table].x.size()[0] == 0:
+            return False
+    return True
 
 
 if __name__ == "__main__":

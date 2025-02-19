@@ -1,17 +1,12 @@
-import os
 import argparse
 
 import torch
 import numpy as np
 import pandas as pd
 from syntherela.metadata import Metadata
-from syntherela.data import save_tables
+from syntherela.data import save_tables, load_tables, remove_sdv_columns
 
-from relgdiff.data.update_graph import update_graph_features
-from relgdiff.data.sample_structures import sample_structures
 from relgdiff.generation.diffusion import sample_diff
-from relgdiff.embedding_generation.embeddings import compute_hetero_gnn_embeddings
-from relgdiff.data.utils import get_table_order, get_positional_encoding
 
 DATA_PATH = "data"
 
@@ -21,18 +16,12 @@ DATA_PATH = "data"
 
 def sample(
     dataset_name,
-    run,
-    num_structures=None,
     factor_missing=True,
     model_type="mlp",
     seed=None,
     denoising_steps=50,
-    gnn_hidden=128,
-    mlp_layers=3,
-    positional_enc=True,
     normalization="quantile",
     sample_idx=None,
-    fix_structure=False,
 ):
     if seed is not None:
         torch.manual_seed(seed)
@@ -44,26 +33,11 @@ def sample(
     metadata = Metadata().load_from_json(
         f"{DATA_PATH}/original/{dataset_name}/metadata.json"
     )
+    tables_orig = load_tables(f"{DATA_PATH}/original/{dataset_name}/", metadata)
+    tables_orig, metadata = remove_sdv_columns(tables_orig, metadata)
     tables = dict()
 
-    gnn_layers = len(metadata.get_tables())
-    if positional_enc:
-        pos_enc, positional_enc = get_positional_encoding(dataset_name)
-    else:
-        pos_enc = None
-
-    # create graph
-    masked_tables = metadata.get_tables()
-    hetero_data = sample_structures(
-        data_path=f"{DATA_PATH}/original/{dataset_name}",
-        metadata=metadata,
-        num_structures=num_structures,
-        pos_enc=pos_enc,
-        fix_structure=fix_structure,
-    )
-
-    # Read latentent embeddings dimensionts to obtain GNN dimensions
-    embedding_dims = {}
+    # for each table in dataset
     for table in metadata.get_tables():
         # skip foreign key only tables
         if metadata.get_column_names(table) == metadata.get_column_names(
@@ -71,57 +45,13 @@ def sample(
         ):
             continue
         table_save_path = f"{dataset_name}/{table}{'_factor' if factor_missing else ''}"
-        table_latents = np.load(f"ckpt/{table_save_path}/vae/{run}/latents.npy")
-        _, T, C = table_latents.shape
-        embedding_dims[table] = (T - 1) * C
-
-    # for each table in dataset
-    for table in get_table_order(metadata):
-        # skip foreign key only tables
-        if metadata.get_column_names(table) == metadata.get_column_names(
-            table, sdtype="id"
-        ):
-            # add primary key
-            pk = metadata.get_primary_key(table)
-            df = pd.DataFrame(columns=[pk])
-            df[pk] = np.arange(hetero_data[table].x.shape[0])
-            # add foreign keys
-            for parent in metadata.get_parents(table):
-                for foreign_key in metadata.get_foreign_keys(parent, table):
-                    fks = (
-                        hetero_data[(parent, foreign_key, table)]
-                        .edge_index[0]
-                        .cpu()
-                        .numpy()
-                    )
-                    df[foreign_key] = fks
-            print(f"Successfully sampled data for table {table}")
-            print(df.head())
-            tables[table] = df
-            continue
-        table_save_path = f"{dataset_name}/{table}{'_factor' if factor_missing else ''}"
-        # compute GNN embeddings
-        gnn_save_dir = f"ckpt/{dataset_name}/hetero_gnn/{'factor' if factor_missing else ''}{'pe' if positional_enc else ''}"
-        conditional_embeddings = compute_hetero_gnn_embeddings(
-            hetero_data,
-            embedding_table=table,
-            model_save_dir=gnn_save_dir,
-            embedding_dim=embedding_dims,
-            hidden_channels=gnn_hidden,
-            num_layers=gnn_layers,
-            mlp_layers=mlp_layers,
-            pos_enc=pos_enc,
-        )
-        masked_tables.remove(table)
-
-        os.makedirs(f"ckpt/{table_save_path}/{run}/gen", exist_ok=True)
-        np.save(f"ckpt/{table_save_path}/{run}/gen/cond_z.npy", conditional_embeddings)
 
         # sample diffusion
         df = sample_diff(
             table_save_path,
-            run,
-            is_cond=True,
+            run="baseline",
+            num_samples=len(tables_orig[table]),
+            is_cond=False,
             model_type=model_type,
             device=device,
             denoising_steps=denoising_steps,
@@ -165,25 +95,12 @@ def sample(
         pk = metadata.get_primary_key(table)
         if pk is not None:
             df[pk] = np.arange(len(df))
-        # add foreign keys
-        for parent in metadata.get_parents(table):
-            for foreign_key in metadata.get_foreign_keys(parent, table):
-                fks = (
-                    hetero_data[(parent, foreign_key, table)]
-                    .edge_index[0]
-                    .cpu()
-                    .numpy()
-                )
-                df[foreign_key] = fks
 
         print(f"Successfully sampled data for table {table}")
         print(df.head())
         tables[table] = df
 
-        # update the features of hetero_data
-        if len(tables) < len(metadata.get_tables()):
-            hetero_data = update_graph_features(hetero_data, df, table, metadata)
-    save_path = f"{DATA_PATH}/synthetic/{dataset_name}/RGCLD/{run}"
+    save_path = f"{DATA_PATH}/synthetic/{dataset_name}/baseline"
     if sample_idx is not None:
         save_path = f"{save_path}/sample{sample_idx}"
     save_tables(tables, save_path)
@@ -201,7 +118,6 @@ def parse_args():
     parser.add_argument("--denoising-steps", type=int, default=100)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--factor-missing", action="store_true")
-    parser.add_argument("--positional-enc", action="store_true")
     parser.add_argument("--run", type=str, default=None)
     parser.add_argument(
         "--model-type", type=str, default="mlp", choices=["mlp", "unet"]
@@ -212,6 +128,12 @@ def parse_args():
         default="quantile",
         choices=["quantile", "standard", "cdf"],
     )
+    parser.add_argument(
+        "--embedding-task",
+        type=str,
+        default="reconstruction",
+        choices=["reconstruction", "node_classification"],
+    )
     parser.add_argument("--use-original-structure", action="store_true")
     return parser.parse_args()
 
@@ -220,34 +142,21 @@ def main():
     args = parse_args()
     dataset_name = args.dataset_name
     num_samples = args.num_samples
-    num_structures = args.num_structures
     denoising_steps = args.denoising_steps
     factor_missing = args.factor_missing
-    positional_enc = args.positional_enc
     seed = args.seed
     model_type = args.model_type
-    gnn_hidden = args.gnn_hidden
     normalization = args.normalization
-    fix_structure = args.use_original_structure
-    if args.run is not None:
-        run = args.run
-    else:
-        run = f"{model_type}{'_factor' if factor_missing else ''}{'_pe' if positional_enc else ''}"
 
     for i in range(1, num_samples + 1):
         sample(
             dataset_name=dataset_name,
-            run=run,
-            num_structures=num_structures,
             model_type=model_type,
             normalization=normalization,
             factor_missing=factor_missing,
-            positional_enc=positional_enc,
             denoising_steps=denoising_steps,
-            gnn_hidden=gnn_hidden,
             seed=seed,
             sample_idx=i,
-            fix_structure=fix_structure,
         )
 
 

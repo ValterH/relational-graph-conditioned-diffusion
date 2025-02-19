@@ -82,6 +82,11 @@ def split_num_cat(syn_data, info, num_inverse, cat_inverse):
     for pred in x_hat_cat:
         syn_cat.append(pred.argmax(dim=-1))
 
+    if x_hat_num.isnan().any():
+        nan_rows = torch.unique(torch.where(x_hat_num.isnan())[0])
+        x_hat_num[nan_rows] = x_hat_num.nanmean(axis=0)
+        print("NaNs in numerical columns")  # FIXME
+
     syn_num = x_hat_num.cpu().numpy()
     syn_cat = torch.stack(syn_cat).t().cpu().numpy()
 
