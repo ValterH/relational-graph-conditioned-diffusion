@@ -2,6 +2,21 @@ from copy import deepcopy
 import pandas as pd
 
 
+def sort_rows_by_child_count(tables, table_name, metadata):
+    pk = metadata.get_primary_key(table_name)
+    # reorder the parent rows so that parents without children are
+    # at the end to obtain a valid edge index
+    for child_table_name in metadata.get_children(table_name):
+        for fk in metadata.get_foreign_keys(table_name, child_table_name):
+            rows_with_children = tables[table_name][pk].isin(
+                tables[child_table_name][fk]
+            )
+            # rows with children are at the end
+            index = rows_with_children.sort_values().index.tolist()
+            tables[table_name] = tables[table_name].reindex(index)
+    return tables
+
+
 def encode_datetime(df, column, date_format="%Y-%m-%d"):
     datetime_columns = []
     nulls = df[column].isnull()

@@ -11,6 +11,7 @@ from relgdiff.data.tables_to_heterodata import (
     tables_to_heterodata,
     subgraph_has_all_tables,
 )
+from relgdiff.data.utils import sort_rows_by_child_count
 
 
 def get_connected_components(data):
@@ -41,6 +42,9 @@ def sample_structures(
 ):
     tables = load_tables(data_path, metadata)
     tables, metadata = remove_sdv_columns(tables, metadata)
+    if not fix_structure:
+        for table_name in metadata.get_tables():
+            tables = sort_rows_by_child_count(tables, table_name, metadata)
     data = tables_to_heterodata(
         tables, metadata, masked_tables=metadata.get_tables(), pos_enc=pos_enc
     )

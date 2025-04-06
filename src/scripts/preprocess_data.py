@@ -280,18 +280,6 @@ if __name__ == "__main__":
     factor_missing = factor_missing and has_nan
 
     for table_name, table in tables.items():
-        pk = metadata.get_primary_key(table_name)
-        # reorder the parent rows so that parents without children are
-        # at the end to obtain a valid edge index
-        for child_table_name in metadata.get_children(table_name):
-            for fk in metadata.get_foreign_keys(table_name, child_table_name):
-                rows_with_children = tables[table_name][pk].isin(
-                    tables[child_table_name][fk]
-                )
-                # rows with children are at the end
-                index = rows_with_children.sort_values().index.tolist()
-                tables[table_name] = tables[table_name].reindex(index)
-
         process_data(
             table,
             name=table_name,
